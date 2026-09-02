@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Geo-Feldtest</title>
+<style>
+  :root{
+    --paper:#EFF2EE;
+    --panel:#FFFFFF;
+    --ink:#17211D;
+    --soft:#5E6D64;
+    --rule:#D2D9D3;
+    --sea:#17557A;
+    --go:#0B7A4B;
+    --near:#A2670A;
+    --far:#6B7A72;
+    --alert:#A32222;
+    --shadow:0 1px 0 var(--rule);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html{-webkit-text-size-adjust:100%}
+
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.45;
+    font-size:16px;
+    padding:0 0 env(safe-area-inset-bottom);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+  .wrap{max-width:560px;margin:0 auto;padding:0 16px 48px}
+
+  /* ---------- Kopf ---------- */
+  header{
+    padding:20px 0 14px;
+    border-bottom:2px solid var(--ink);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+  }
+  h1{font-size:1.05rem;font-weight:650;letter-spacing:-0.01em}
+  .fixstate{font-size:.8rem;color:var(--soft)}
+  .fixstate b{font-weight:600;color:var(--ink)}
+
+  /* ---------- Warnung ---------- */
+  .warn{
+    margin:14px 0 0;
+    padding:12px 14px;
+    border-left:4px solid var(--alert);
+    background:#FBEEEE;
+    font-size:.86rem;
+    color:#5E1C1C;
+  }
+  .warn b{display:block;margin-bottom:3px;color:var(--alert)}
+  .warn code{font-size:.82em;background:#00000010;padding:1px 4px;border-radius:2px}
+
+  /* ---------- Hauptanzeige ---------- */
+  .readout{
+    background:var(--panel);
+    border-radius:4px;
+    padding:22px 18px 16px;
+    margin-top:18px;
+    box-shadow:var(--shadow);
+  }
+  .readout-label{
+    font-size:.78rem;
+    color:var(--soft);
+    margin-bottom:2px;
+  }
+  .headline{
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+    line-height:1;
+  }
+  .headline .v{
+    font-size:3.6rem;
+    font-weight:300;
+    letter-spacing:-0.035em;
+  }
+  .headline .u{font-size:1.2rem;font-weight:400;color:var(--soft)}
+  .headline.go .v{color:var(--go)}
+  .headline.near .v{color:var(--near)}
+  .headline.far .v{color:var(--ink)}
+  .headline.dead .v{color:var(--rule)}
+
+  .sub{margin-top:8px;font-size:.88rem;color:var(--soft)}
+  .sub .tag{color:var(--ink);font-weight:600}
+
+  .quality{
+    display:flex;
+    height:6px;
+    margin-top:16px;
+    border-radius:3px;
+    overflow:hidden;
+    background:var(--rule);
+  }
+  .quality i{display:block;height:100%;transition:width .4s ease}
+
+  /* ---------- Koordinaten ---------- */
+  .coords{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid var(--rule);
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px 14px;
+  }
+  .cell .k{font-size:.72rem;color:var(--soft)}
+  .cell .d{font-size:1.02rem;font-weight:550;letter-spacing:-0.01em}
+  .cell .d small{font-weight:400;font-size:.75em;color:var(--soft)}
+
+  /* ---------- Abschnitte ---------- */
+  section{margin-top:26px}
+  .shead{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    padding-bottom:7px;
+    border-bottom:1px solid var(--ink);
+  }
+  .shead h2{font-size:.92rem;font-weight:650}
+  .shead .note{font-size:.76rem;color:var(--soft)}
+
+  /* ---------- Formular ---------- */
+  .form{margin-top:12px;display:grid;gap:9px}
+  .row{display:flex;gap:9px}
+  input[type=text],select{
+    font:inherit;
+    font-size:1rem;
+    padding:11px 12px;
+    border:1px solid var(--rule);
+    border-radius:3px;
+    background:var(--panel);
+    color:var(--ink);
+    width:100%;
+    min-width:0;
+  }
+  select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--soft) 50%),linear-gradient(135deg,var(--soft) 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
+  input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--sea);outline-offset:2px}
+
+  button{
+    font:inherit;
+    font-size:1rem;
+    font-weight:600;
+    padding:13px 16px;
+    border:0;
+    border-radius:3px;
+    background:var(--sea);
+    color:#fff;
+    cursor:pointer;
+    width:100%;
+  }
+  button:disabled{background:var(--rule);color:#96A29B;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--sea);border:1px solid var(--rule);font-weight:550}
+
+  .slider{display:flex;align-items:center;gap:12px;font-size:.86rem;color:var(--soft)}
+  .slider label{white-space:nowrap}
+  .slider output{color:var(--ink);font-weight:600;min-width:52px;text-align:right}
+  input[type=range]{flex:1;accent-color:var(--sea);min-width:0}
+
+  /* ---------- Punktliste ---------- */
+  .empty{
+    margin-top:12px;
+    padding:22px 4px;
+    color:var(--soft);
+    font-size:.9rem;
+  }
+  ul{list-style:none;margin-top:2px}
+  li.poi{
+    padding:14px 0 13px;
+    border-bottom:1px solid var(--rule);
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:2px 12px;
+    align-items:baseline;
+  }
+  li.poi .nm{font-weight:600;font-size:1rem}
+  li.poi .nm em{font-style:normal;font-weight:400;color:var(--soft);font-size:.82rem}
+  li.poi .dist{font-size:1.4rem;font-weight:400;letter-spacing:-0.02em;text-align:right}
+  li.poi .meta{font-size:.76rem;color:var(--soft);grid-column:1}
+  li.poi .verdict{font-size:.76rem;text-align:right;font-weight:600}
+  li.poi .track{grid-column:1/-1;height:3px;background:var(--rule);border-radius:2px;margin-top:9px;overflow:hidden}
+  li.poi .track i{display:block;height:100%;transition:width .3s ease}
+  li.poi.in{background:linear-gradient(90deg,#0B7A4B0F,transparent 65%);margin:0 -14px;padding-left:14px;padding-right:14px;border-left:3px solid var(--go)}
+  li.poi.in .dist,li.poi.in .verdict{color:var(--go)}
+  li.poi.blocked .dist,li.poi.blocked .verdict{color:var(--near)}
+  li.poi .kill{
+    grid-column:2;justify-self:end;background:none;border:0;color:var(--soft);
+    font-size:.76rem;padding:4px 0;width:auto;font-weight:500;text-decoration:underline;
+  }
+
+  /* ---------- Protokoll ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .stat .k{font-size:.7rem;color:var(--soft)}
+  .stat .v{font-size:1.25rem;font-weight:400;letter-spacing:-0.02em}
+  .stat .v small{font-size:.6em;color:var(--soft);font-weight:400}
+  svg.spark{display:block;width:100%;height:70px;margin-top:16px;background:var(--panel);border-radius:3px}
+
+  /* ---------- Daten ---------- */
+  textarea{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:.78rem;
+    width:100%;
+    height:130px;
+    padding:11px;
+    border:1px solid var(--rule);
+    border-radius:3px;
+    background:var(--panel);
+    color:var(--ink);
+    margin-top:12px;
+    resize:vertical;
+  }
+  .hint{font-size:.8rem;color:var(--soft);margin-top:10px}
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--rule);font-size:.78rem;color:var(--soft)}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Geo-Feldtest</h1>
+    <div class="fixstate" id="fixstate">Warte auf Signal</div>
+  </header>
+
+  <div id="warnbox"></div>
+
+  <div class="readout">
+    <div class="readout-label" id="roLabel">Messgenauigkeit</div>
+    <div class="headline dead" id="roHead">
+      <span class="v num" id="roVal">–</span>
+      <span class="u" id="roUnit">m</span>
+    </div>
+    <div class="sub" id="roSub">Standortfreigabe erteilen, dann kurz warten. Die erste Messung ist fast immer ungenau.</div>
+    <div class="quality"><i id="qbar" style="width:0"></i></div>
+
+    <div class="coords">
+      <div class="cell"><div class="k">Breite</div><div class="d num" id="cLat">–</div></div>
+      <div class="cell"><div class="k">Länge</div><div class="d num" id="cLon">–</div></div>
+      <div class="cell"><div class="k">Höhe</div><div class="d num" id="cAlt">–</div></div>
+      <div class="cell"><div class="k">Messung vor</div><div class="d num" id="cAge">–</div></div>
+    </div>
+  </div>
+
+  <section>
+    <div class="shead">
+      <h2>Punkt hier setzen</h2>
+      <span class="note">an Ort und Stelle stehen bleiben</span>
+    </div>
+    <div class="form">
+      <div class="row">
+        <input type="text" id="pName" placeholder="Name, z. B. Agios Nikolaos" autocomplete="off" enterkeyhint="done">
+        <select id="pKat" aria-label="Kategorie">
+          <option value="Kirche">Kirche</option>
+          <option value="Feuerwehr">Feuerwehr</option>
+          <option value="Taverne">Taverne</option>
+          <option value="Aussicht">Aussicht</option>
+          <option value="Brunnen">Brunnen</option>
+          <option value="Sonstiges">Sonstiges</option>
+        </select>
+      </div>
+      <div class="slider">
+        <label for="pRad">Radius</label>
+        <input type="range" id="pRad" min="10" max="300" step="5" value="50">
+        <output class="num" id="pRadOut">50 m</output>
+      </div>
+      <button id="save" disabled>Punkt speichern</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <h2>Gespeicherte Punkte</h2>
+      <span class="note" id="poiCount">keine</span>
+    </div>
+    <div id="poiEmpty" class="empty">Noch nichts gesetzt. Stell dich an die Kirche, warte bis die Genauigkeit unter 20 m fällt, und speichere den Punkt. Danach lauf weg und beobachte, ab welcher Entfernung der Stempel auslöst.</div>
+    <ul id="poiList"></ul>
+  </section>
+
+  <section>
+    <div class="shead">
+      <h2>Messprotokoll</h2>
+      <span class="note" id="sampleNote">0 Messungen</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">Beste</div><div class="v num" id="sBest">–</div></div>
+      <div class="stat"><div class="k">Median</div><div class="v num" id="sMed">–</div></div>
+      <div class="stat"><div class="k">Schlechteste</div><div class="v num" id="sWorst">–</div></div>
+      <div class="stat"><div class="k">Über 50 m</div><div class="v num" id="sBad">–</div></div>
+    </div>
+    <svg class="spark" id="spark" viewBox="0 0 300 70" preserveAspectRatio="none" role="img" aria-label="Verlauf der Messgenauigkeit"></svg>
+    <p class="hint">Die Kurve zeigt die Genauigkeit über die Zeit, unten ist besser. Der Median ist die Zahl, nach der du deine Radien auslegst.</p>
+  </section>
+
+  <section>
+    <div class="shead">
+      <h2>Daten sichern</h2>
+      <span class="note">vor dem Schließen kopieren</span>
+    </div>
+    <textarea id="json" spellcheck="false" aria-label="Punkte als JSON"></textarea>
+    <div class="row" style="margin-top:9px">
+      <button class="ghost" id="copy">In Zwischenablage</button>
+      <button class="ghost" id="load">Aus Feld laden</button>
+    </div>
+    <p class="hint">Die Punkte liegen nur im Arbeitsspeicher. Beim Neuladen sind sie weg. Im Quelltext steht bei <code>SPEICHER</code>, wie du das mit drei Zeilen dauerhaft machst.</p>
+  </section>
+
+  <footer>
+    Feldtest-Werkzeug. Es werden keine Daten übertragen, alles läuft im Browser.
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   SPEICHER — dauerhaft machen (nur auf eigenem Hosting nötig)
+   In der Vorschau hier ist localStorage gesperrt. Sobald die
+   Datei auf deinem eigenen Server liegt, diese Zeilen einbauen:
+
+     // in persist():
+     localStorage.setItem('geotest', JSON.stringify(pois));
+     // beim Start, direkt vor start():
+     try{ pois = JSON.parse(localStorage.getItem('geotest')) || []; }catch(e){}
+
+   ============================================================ */
+
+let pois = [];
+let last = null;          // letzte Position
+let samples = [];         // Genauigkeitswerte der Sitzung
+let inside = new Set();   // Punkte, in deren Radius wir gerade sind
+let watchId = null;
+
+const $ = id => document.getElementById(id);
+
+/* ---------- Entfernung zwischen zwei Koordinaten (Haversine) ---------- */
+function distance(lat1, lon1, lat2, lon2){
+  const R = 6371000, rad = Math.PI/180;
+  const dLat = (lat2-lat1)*rad, dLon = (lon2-lon1)*rad;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+const fmtM = m => m < 1000 ? Math.round(m) + ' m' : (m/1000).toFixed(2) + ' km';
+
+function accColor(a){
+  if(a <= 15) return 'var(--go)';
+  if(a <= 35) return '#4A8A2E';
+  if(a <= 80) return 'var(--near)';
+  return 'var(--alert)';
+}
+
+/* ---------- Sicherer Kontext? Ohne HTTPS gibt es kein GPS ---------- */
+function checkContext(){
+  if(window.isSecureContext) return true;
+  $('warnbox').innerHTML =
+    '<div class="warn"><b>Kein sicherer Kontext</b>' +
+    'Standortabfrage funktioniert nur über <code>https://</code> oder <code>localhost</code>. ' +
+    'Über eine lokale IP wie <code>192.168.x.x</code> blockiert der Browser sie. ' +
+    'Leg die Datei auf einen HTTPS-Host oder nutz einen Tunnel.</div>';
+  return false;
+}
+
+/* ---------- Standortverfolgung ---------- */
+function start(){
+  if(!('geolocation' in navigator)){
+    $('warnbox').innerHTML = '<div class="warn"><b>Nicht unterstützt</b>Dieser Browser kennt keine Geolocation-API.</div>';
+    return;
+  }
+  if(!checkContext()) return;
+
+  $('fixstate').innerHTML = 'Suche <b>Signal</b>';
+
+  watchId = navigator.geolocation.watchPosition(onFix, onErr, {
+    enableHighAccuracy: true,   // GPS statt WLAN/Funkzelle
+    maximumAge: 0,              // keine alten Werte aus dem Cache
+    timeout: 25000
+  });
+}
+
+function onFix(pos){
+  last = pos;
+  const a = pos.coords.accuracy;
+  samples.push({t: pos.timestamp, a});
+  if(samples.length > 400) samples.shift();
+
+  $('fixstate').innerHTML = 'Signal <b>aktiv</b>';
+  $('save').disabled = false;
+  render();
+}
+
+function onErr(err){
+  const msg = {
+    1: ['Freigabe verweigert', 'Der Standortzugriff wurde abgelehnt. In den Website-Einstellungen des Browsers wieder erlauben, dann Seite neu laden.'],
+    2: ['Kein Signal', 'Die Position lässt sich nicht bestimmen. Unter freiem Himmel erneut versuchen.'],
+    3: ['Zeitüberschreitung', 'Innerhalb von 25 Sekunden kam keine Messung. Meist hilft es, kurz nach draußen zu gehen.']
+  }[err.code] || ['Fehler', err.message];
+
+  $('warnbox').innerHTML = '<div class="warn"><b>' + msg[0] + '</b>' + msg[1] + '</div>';
+  $('fixstate').innerHTML = 'Signal <b>unterbrochen</b>';
+}
+
+/* ---------- Anzeige ---------- */
+function render(){
+  renderReadout();
+  renderList();
+  renderStats();
+  $('json').value = JSON.stringify(pois, null, 2);
+}
+
+function renderReadout(){
+  const head = $('roHead');
+  if(!last){ return; }
+  const c = last.coords;
+
+  // Sobald Punkte existieren, ist der nächstgelegene die wichtigste Zahl
+  let nearest = null;
+  for(const p of pois){
+    const d = distance(c.latitude, c.longitude, p.lat, p.lon);
+    if(!nearest || d < nearest.d) nearest = {p, d};
+  }
+
+  head.className = 'headline';
+  if(nearest){
+    $('roLabel').textContent = 'Entfernung zu ' + nearest.p.name;
+    const val = nearest.d < 1000 ? Math.round(nearest.d) : (nearest.d/1000).toFixed(2);
+    $('roVal').textContent = val;
+    $('roUnit').textContent = nearest.d < 1000 ? 'm' : 'km';
+
+    const inRange = nearest.d <= nearest.p.radius;
+    const ok = c.accuracy <= 100;
+    head.classList.add(inRange ? (ok ? 'go' : 'near') : (nearest.d < nearest.p.radius*3 ? 'near' : 'far'));
+
+    $('roSub').innerHTML = inRange
+      ? (ok ? '<span class="tag">Im Radius.</span> Stempel würde ausgelöst.'
+            : '<span class="tag">Im Radius, aber zu ungenau.</span> Messung liegt bei ±' + Math.round(c.accuracy) + ' m, der Server würde ablehnen.')
+      : 'Radius ' + nearest.p.radius + ' m · noch ' + fmtM(nearest.d - nearest.p.radius) + ' · Messgenauigkeit ±' + Math.round(c.accuracy) + ' m';
+  }else{
+    $('roLabel').textContent = 'Messgenauigkeit';
+    $('roVal').textContent = '±' + Math.round(c.accuracy);
+    $('roUnit').textContent = 'm';
+    head.classList.add(c.accuracy <= 35 ? 'go' : c.accuracy <= 80 ? 'near' : 'far');
+    $('roSub').innerHTML = c.accuracy <= 20
+      ? '<span class="tag">Gut genug.</span> Jetzt einen Punkt setzen.'
+      : 'Noch warten. Unter ±20 m ist ein Punkt verlässlich gesetzt.';
+  }
+
+  // Balken: 0 m links, 120 m rechts
+  const pct = Math.max(3, 100 - Math.min(c.accuracy, 120)/120*100);
+  const qb = $('qbar');
+  qb.style.width = pct + '%';
+  qb.style.background = accColor(c.accuracy);
+
+  $('cLat').innerHTML = c.latitude.toFixed(6) + ' <small>N</small>';
+  $('cLon').innerHTML = c.longitude.toFixed(6) + ' <small>E</small>';
+  $('cAlt').innerHTML = c.altitude != null
+    ? Math.round(c.altitude) + ' <small>m ü. NN</small>' : '<small>keine Angabe</small>';
+
+  const age = Math.round((Date.now() - last.timestamp)/1000);
+  $('cAge').innerHTML = age + ' <small>s</small>';
+}
+
+function renderList(){
+  const ul = $('poiList');
+  $('poiEmpty').style.display = pois.length ? 'none' : 'block';
+  $('poiCount').textContent = pois.length ? pois.length + (pois.length === 1 ? ' Punkt' : ' Punkte') : 'keine';
+  ul.innerHTML = '';
+  if(!pois.length || !last) return;
+
+  const c = last.coords;
+  const rows = pois.map(p => ({p, d: distance(c.latitude, c.longitude, p.lat, p.lon)}))
+                   .sort((x,y) => x.d - y.d);
+
+  for(const {p, d} of rows){
+    const inRange = d <= p.radius;
+    const ok = c.accuracy <= 100;
+
+    // Haptisches Signal nur beim Eintreten, nicht dauerhaft
+    if(inRange && ok && !inside.has(p.id)){
+      inside.add(p.id);
+      if(navigator.vibrate) navigator.vibrate([40, 60, 40]);
+    }else if(!inRange && inside.has(p.id)){
+      inside.delete(p.id);
+    }
+
+    const li = document.createElement('li');
+    li.className = 'poi' + (inRange ? (ok ? ' in' : ' blocked') : '');
+
+    const fill = Math.max(2, 100 - Math.min(d / (p.radius*4), 1)*100);
+    const col = inRange ? (ok ? 'var(--go)' : 'var(--near)') : 'var(--far)';
+
+    li.innerHTML =
+      '<div class="nm">' + esc(p.name) + ' <em>' + esc(p.kat) + '</em></div>' +
+      '<div class="dist num">' + (d < 1000 ? Math.round(d) + ' m' : (d/1000).toFixed(2) + ' km') + '</div>' +
+      '<div class="meta num">Radius ' + p.radius + ' m · gesetzt bei ±' + Math.round(p.setAcc) + ' m</div>' +
+      '<div class="verdict">' + (inRange ? (ok ? 'Stempel' : 'zu ungenau') : '') + '</div>' +
+      '<div class="track"><i style="width:' + fill + '%;background:' + col + '"></i></div>';
+
+    const kill = document.createElement('button');
+    kill.className = 'kill';
+    kill.textContent = 'entfernen';
+    kill.onclick = () => { pois = pois.filter(x => x.id !== p.id); inside.delete(p.id); render(); };
+    li.appendChild(kill);
+
+    ul.appendChild(li);
+  }
+}
+
+function renderStats(){
+  const n = samples.length;
+  $('sampleNote').textContent = n + (n === 1 ? ' Messung' : ' Messungen');
+  if(!n) return;
+
+  const vals = samples.map(s => s.a).sort((a,b) => a-b);
+  const med = vals[Math.floor(vals.length/2)];
+  const bad = samples.filter(s => s.a > 50).length;
+
+  $('sBest').innerHTML  = Math.round(vals[0]) + '<small> m</small>';
+  $('sMed').innerHTML   = Math.round(med) + '<small> m</small>';
+  $('sWorst').innerHTML = Math.round(vals[vals.length-1]) + '<small> m</small>';
+  $('sBad').innerHTML   = Math.round(bad/n*100) + '<small> %</small>';
+
+  drawSpark();
+}
+
+function drawSpark(){
+  const svg = $('spark');
+  const pts = samples.slice(-120);
+  if(pts.length < 2){ svg.innerHTML = ''; return; }
+
+  const W = 300, H = 70, cap = 120;
+  const x = i => i/(pts.length-1)*W;
+  const y = a => H - Math.min(a, cap)/cap*(H-6) - 3;
+
+  let d = '';
+  pts.forEach((s,i) => { d += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(s.a).toFixed(1); });
+
+  // Bezugslinien bei 20 m und 50 m
+  const g = a => '<line x1="0" y1="' + y(a) + '" x2="' + W + '" y2="' + y(a) +
+                 '" stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 4"/>' +
+                 '<text x="3" y="' + (y(a)-3) + '" font-size="8" fill="#8C978F">' + a + ' m</text>';
+
+  svg.innerHTML = g(50) + g(20) +
+    '<path d="' + d + ' L' + W + ' ' + H + ' L0 ' + H + ' Z" fill="#17557A12"/>' +
+    '<path d="' + d + '" fill="none" stroke="var(--sea)" stroke-width="1.6" ' +
+    'stroke-linejoin="round" vector-effect="non-scaling-stroke"/>';
+}
+
+const esc = s => String(s).replace(/[<>&"]/g, m => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
+
+function persist(){ /* siehe SPEICHER oben */ }
+
+/* ---------- Bedienung ---------- */
+$('pRad').addEventListener('input', e => { $('pRadOut').textContent = e.target.value + ' m'; });
+
+$('save').addEventListener('click', () => {
+  if(!last) return;
+  const name = $('pName').value.trim() || $('pKat').value;
+  pois.push({
+    id: Date.now().toString(36),
+    name,
+    kat: $('pKat').value,
+    lat: +last.coords.latitude.toFixed(6),
+    lon: +last.coords.longitude.toFixed(6),
+    radius: +$('pRad').value,
+    setAcc: Math.round(last.coords.accuracy),
+    setAt: new Date(last.timestamp).toISOString()
+  });
+  $('pName').value = '';
+  persist();
+  render();
+  if(navigator.vibrate) navigator.vibrate(25);
+});
+
+$('copy').addEventListener('click', async () => {
+  const btn = $('copy');
+  try{
+    await navigator.clipboard.writeText($('json').value);
+    btn.textContent = 'Kopiert';
+  }catch(e){
+    $('json').select();
+    btn.textContent = 'Markiert, jetzt kopieren';
+  }
+  setTimeout(() => btn.textContent = 'In Zwischenablage', 1800);
+});
+
+$('load').addEventListener('click', () => {
+  try{
+    const parsed = JSON.parse($('json').value);
+    if(!Array.isArray(parsed)) throw 0;
+    pois = parsed;
+    inside.clear();
+    persist();
+    render();
+  }catch(e){
+    $('load').textContent = 'Kein gültiges JSON';
+    setTimeout(() => $('load').textContent = 'Aus Feld laden', 1800);
+  }
+});
+
+// Alter der Messung mitlaufen lassen
+setInterval(() => { if(last) renderReadout(); }, 1000);
+
+start();
+render();
+</script>
+</body>
+</html>
